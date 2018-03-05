@@ -1,0 +1,46 @@
+
+查看HBA卡的信息：
+ls -ltr /sys/class/fc_host/
+drwxr-xr-x 3 root root 0 Mar  1 15:25 host0
+drwxr-xr-x 3 root root 0 Mar  1 15:25 host1
+
+cat /sys/class/fc_host/host0/port_state 
+Online
+
+cat /sys/class/fc_host/host0/port_name
+0x5001438021df7282
+
+交换机zone设置类型：
+wwn zone(换新的hba会有不同的wwn号，需通过存储操作台，或连接到控制器上直连存储，输入ip，用户名，密码)
+port zone（不需要任何操作）
+
+换hba卡后需重新进行映射，这样多路径才能重新识别
+
+
+
+案例：
+/var/log/message:
+kernel: qla2xxx 0000:0c:00.0: scsi(0:0:3): Abort command issued -- 1 d87bf02 2002.
+kernel: sd 0:0:0:3: timing out command, waited 60s
+multipathd: sdc: tur checker reports path is down 
+multipathd: checker failed path 8:32 in map mpath3 
+kernel: device-mapper: multipath: Failing path 8:32.
+
+显示hba卡的报错，从而造成多路径的问题。 因为这是两台光纤交换机做互备的，多路径有四路，坏了一张hba卡，只显示2路了
+正常链路：
+\_ round-robin 0 [prio=50][active]
+ \_ 1:0:1:2  sdal 66:80  [active][ready]
+\_ round-robin 0 [prio=50][enabled]
+ \_ 0:0:1:2  sdn  8:208  [active][ready]
+\_ round-robin 0 [prio=10][enabled]
+ \_ 0:0:0:2  sdb  8:16   [active][ready]
+\_ round-robin 0 [prio=10][enabled]
+ \_ 1:0:0:2  sdz  65:144 [active][ready]
+
+坏了一张hba卡后，到存储的链路少了2条
+\_ round-robin 0 [prio=50][active]
+ \_ 1:0:1:2  sdal 66:80  [active][ready]
+\_ round-robin 0 [prio=50][enabled]
+ \_ 0:0:1:2  sdn  8:208  [active][ready]
+
+换了hba卡，重新映射到存储后正常。
